@@ -16,7 +16,7 @@
 ## Асcемблерный код
 - [GCC](https://github.com/shannami/educational-practice/tree/main/asm/gcc)
 - [Clang](https://github.com/shannami/educational-practice/tree/main/asm/clang)
-- [CompCert](https://github.com/shannami/educational-practice/tree/main/asm/compcert)
+
 
 ---
 Характеристики системы, на которой проводились исследования:
