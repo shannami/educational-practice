@@ -1,0 +1,242 @@
+% Данный файл распространяется под лицензией CC BY 4.0. Текст лицензии размещён на https://creativecommons.org/licenses/by/4.0/
+% (c) Кафедра системного программирования, 2026
+
+% Компилировать XeTeX
+
+\documentclass[a4paper]{article}
+
+\usepackage[a4paper, top=8mm, bottom=8mm, left=8mm, right=8mm]{geometry}
+
+\usepackage{polyglossia}
+\setdefaultlanguage[babelshorthands=true]{russian}
+\setotherlanguage{english}
+
+\usepackage{fontspec}
+\setmainfont{FreeSerif}
+\newfontfamily{\russianfonttt}[Scale=0.7]{DejaVuSansMono}
+
+\usepackage[tiny, compact]{titlesec}
+
+\usepackage{titling}
+\setlength{\droptitle}{-1cm}
+\pretitle{\begin{center}\begin{bfseries}\Large}
+\posttitle{\par\end{bfseries}\end{center}}
+\preauthor{\begin{center}\normalsize}
+\postauthor{\par\end{center}\vspace{-1.8cm}}
+
+\usepackage{hyperref}
+\usepackage{bookmark}
+\usepackage{csquotes}
+
+% --- Настройки для компактности ---
+\usepackage{float}      % Для фиксации таблиц [H]
+\usepackage{enumitem}   % Для управления отступами в списках
+\setlist[enumerate]{itemsep=0pt, parsep=0pt, topsep=2pt, partopsep=0pt}
+\setlist[itemize]{itemsep=0pt, parsep=0pt, topsep=2pt, partopsep=0pt}
+\setlength{\parskip}{0pt} % Убираем отступы между абзацами
+
+\title{Сравнение и анализ оптимизаций компиляторов}
+
+\author{Шалахина Анна Олеговна}
+
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{flushright}
+    Группа: \emph{25.Б43}
+
+    Кафедра: \emph{системного программирования}
+
+    Научный руководитель: \emph{Гориховский Вячеслав Игоревич}
+    
+    Номер семестра практики: \emph{2}
+\end{flushright} 
+
+\section{Введение}
+
+Компиляторы языка C оптимизируют один и тот же код по-разному, поэтому размер программы и набор инструкций получаются разными. В работе на двух тестовых программах сравниваются оптимизации компиляторов GCC, Clang и Intel ICX. Результатом являются таблицы сравнения ассемблерного кода.
+
+\section{Постановка задачи}
+
+\textbf{Целью работы является} сравнение и анализ оптимизаций, выполняемых компиляторами GCC, Clang и ICX при компиляции программ на языке C.
+
+\textbf{Задачи:}
+\begin{enumerate}
+    \item Выбрать сценарий, в котором может возникнуть необходимость применения языка C.
+    \item Выполнить обзор компиляторов, изучить выбранный алгоритм.
+    \item Определить характеристики системы, на которой будут проводиться исследования.
+    \item Выполнить компиляцию тестовых программ с оптимизациями по скорости и по размеру.
+    \item Произвести замеры объёма и времени выполнения исполняемых файлов.
+    \item Сгенерировать ассемблерные листинги для \texttt{-O0} и \texttt{-O2}.
+    \item Для каждого компилятора провести сравнение кода без оптимизации и с ней.
+    \item Сравнить стратегии оптимизации трёх компиляторов между собой.
+    \item Придумать несколько специфичных для сценария тестов и провести аналогичный эксперимент на них.
+\end{enumerate}
+
+\section{Обзор}
+
+\textbf{Сценарий:} проверка целостности данных в сетевых протоколах~--- вычисление контрольной суммы по массиву байт. Задача предполагает последовательную обработку большого массива данных и включает циклы, арифметические операции и обращение к элементам массива.
+
+\textbf{Тесты.} Тест \texttt{optbench.c} разработан PC Tech Journal (1988) для проверки возможностей оптимизации компиляторов и охватывает 17 видов оптимизаций\textsuperscript{[5]}. Для сценария выбран алгоритм контрольной суммы Флетчера\textsuperscript{[6, 7]}. В сетевых протоколах он применяется, например, как альтернативная контрольная сумма TCP\textsuperscript{[8]} и в транспортном протоколе ISO\textsuperscript{[9]}.
+
+\textbf{Компиляторы.} Для сравнения выбраны GCC, Clang и Intel ICX.
+
+\begin{itemize}
+    \item \textbf{GCC}~--- выбран как основной вариант, является самым распространённым компилятором с открытым кодом\textsuperscript{[1]}.
+    \item \textbf{Clang}~--- компилятор языков семейства C, использующий инфраструктуру LLVM для оптимизации и генерации машинного кода\textsuperscript{[2]}.
+    \item \textbf{Intel ICX}~--- компилятор C/C++ Intel oneAPI, также использующий LLVM\textsuperscript{[3]}. Кроме того, для ICX установлена модель вещественной арифметики \texttt{-fp-model=fast}, позволяющая применять более агрессивные оптимизации операций с плавающей точкой\textsuperscript{[4]}. Это различие следует учитывать при анализе соответствующих участков программы.
+\end{itemize}
+
+\section{Описание предлагаемого решения}
+
+\textbf{Система:} EndeavourOS, ядро 7.2.6-arch2-1, архитектура x86\_64, процессор AMD Ryzen 5 7430U with Radeon Graphics.
+
+\textbf{Инструменты:} GCC 16.2.1, Clang 22.1.8, ICX 2026.0.0, \texttt{size} 2.47, \texttt{hyperfine} 1.20.0.
+
+Каждая программа собирается с уровнями \texttt{-O0} (без оптимизаций), \texttt{-O2} (по скорости) и \texttt{-Os} (по размеру). \texttt{optbench.c} дополнительно собирается с флагом \texttt{-DNO\_ZERO\_DIVIDE}, исключающим блок деления на ноль. Ассемблерные листинги получены ключом \texttt{-S} для \texttt{-O0} и \texttt{-O2}.
+
+По листингам составлены таблицы сравнения версий с оптимизацией и без для каждого компилятора, затем сводная таблица для \texttt{-O2}.
+
+\section{Эксперименты}
+
+\subsection{Размер и время}
+
+Размер секций измерялся утилитой \texttt{size}, время утилитой \texttt{hyperfine} (среднее \(\pm\) \(\sigma\)):
+
+\subsubsection*{optbench.c}
+\begin{table}[H]
+\centering
+\footnotesize 
+\setlength{\tabcolsep}{2pt}
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \textbf{Размер секции \texttt{.text}, байт}\par\vspace{2pt}
+    \begin{tabular}{|l|c|c|c|}
+    \hline
+    Компилятор & -O0 & -O2 & -Os \\
+    \hline
+    GCC & 3648 & 2949 & 2760 \\
+    Clang & 3330 & 3189 & 2836 \\
+    ICX & 3519 & 3733 & 2705 \\
+    \hline
+    \end{tabular}
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \textbf{Время работы (\(\pm \sigma\)), мс}\par\vspace{2pt}
+    \begin{tabular}{|l|c|c|c|}
+    \hline
+    Компилятор & -O0 & -O2 & -Os \\
+    \hline
+    GCC & 1,4\(\pm\)0,3 & 1,3\(\pm\)0,2 & 1,3\(\pm\)0,2 \\
+    Clang & 1,4\(\pm\)0,2 & 1,3\(\pm\)0,1 & 1,3\(\pm\)0,1 \\
+    ICX & 1,5\(\pm\)0,2 & 1,5\(\pm\)0,2 & 1,4\(\pm\)0,1 \\
+    \hline
+    \end{tabular}
+\end{minipage}
+\end{table}
+
+\subsubsection*{fletcher.c}
+\begin{table}[H]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{2pt}
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \textbf{Размер секции \texttt{.text}, байт}\par\vspace{2pt}
+    \begin{tabular}{|l|c|c|c|}
+    \hline
+    Компилятор & -O0 & -O2 & -Os \\
+    \hline
+    GCC & 2761 & 2595 & 2174 \\
+    Clang & 2587 & 2965 & 2408 \\
+    ICX & 2325 & 3415 & 2091 \\
+    \hline
+    \end{tabular}
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \textbf{Время работы (\(\pm \sigma\)), мс}\par\vspace{2pt}
+    \begin{tabular}{|l|c|c|c|}
+    \hline
+    Компилятор & -O0 & -O2 & -Os \\
+    \hline
+    GCC & 1,6\(\pm\)0,4 & 1,4\(\pm\)0,2 & 1,5\(\pm\)0,2 \\
+    Clang & 1,6\(\pm\)0,3 & 1,4\(\pm\)0,2 & 1,5\(\pm\)0,3 \\
+    ICX & 1,7\(\pm\)0,2 & 1,5\(\pm\)0,1 & 1,6\(\pm\)0,1 \\
+    \hline
+    \end{tabular}
+\end{minipage}
+\end{table}
+
+\subsection{Ассемблер, optbench.c}
+
+\begin{enumerate}
+    \item \textbf{Размножение констант и копий.} Во всех трёх компиляторах после \texttt{j4 = 2} в \texttt{printf} сразу передаётся число 2 (\texttt{movl \$2, \%esi}). Но после \texttt{printf} GCC и Clang снова загружают \texttt{j4} из памяти (\texttt{movl j4(\%rip), \%eax}). ICX сразу сравнивает \texttt{i2} с числом, учитывая, что \texttt{j4 = 2} (\texttt{cmpl \$1, \%r14d}). Значения \texttt{i2} и \texttt{i4} ICX держит в регистрах.
+    \item \textbf{Свёртка констант и арифметические тождества.} У всех трёх компиляторов результат одинаковый. \texttt{1 + 2} превратилось в 3 (\texttt{movl \$3, i3}), сумма \texttt{2.4 + 6.3} записана числом. Тождества \texttt{i + 0}, \texttt{i / 1} и \texttt{i * 1} стали копированием \texttt{i} в \texttt{j2}, \texttt{k2} и \texttt{i4}, \texttt{i * 0} сразу ноль (\texttt{movl \$0, i5}). Выражение \texttt{flt\_6 * 0.0} ни один не заменил нулём, умножение осталось.
+    \item \textbf{Лишнее присваивание.} Во всех трёх листингах осталась одна запись (\texttt{movl \$1, k3(\%rip)}).
+    \item \textbf{Снижение мощности.} Умножение \texttt{4 * j5} во всех трёх компиляторах стало сдвигом влево на 2 бита. Цикл, который заполняет массив \texttt{ivector4} числами \texttt{i * 2}, исчез: массив \texttt{short} из 6 чисел (0, 2, 4, 6, 8, 10) записан двумя командами. Первая (\texttt{movq}/\texttt{movabsq}) кладёт сразу 4 числа (0, 2, 4, 6), вторая (\texttt{movl}) остальные 2 (8, 10).
+    \item \textbf{Простой цикл (do-while).} Все компиляторы вычислили результат цикла при компиляции. Осталось только \texttt{j5 = 10000} и \texttt{i5 = 0}.
+    \item \textbf{Управление переменной индукции цикла.} Переменная индукции: \texttt{i}. Для \texttt{ivector5[i * 2 + 3] = 5} компилятор не считает индекс заново на каждом шаге. GCC использует указатель, который сдвигается на 16 байт, и делает две записи за повтор. Clang использует счётчик, растущий на 4, и делает четыре записи за повтор. ICX использует смещение, которое растёт на 64 байта, и делает восемь записей за повтор, а конец цикла определяет по достижении нуля.
+    \item \textbf{Устранение ветвления и упрощение выражения.} Компиляторы записывают \texttt{i = 100} и оставляют только \texttt{k5 = i5 + i2}. Так как \texttt{i5} равно 0, остаётся \texttt{k5 = i2}: GCC и Clang читают \texttt{i2} из памяти, а ICX записывает готовое число (\texttt{movl \$5, k5}).
+    \item \textbf{Генерация адреса, размножение копий и регистров.} Для постоянных индексов 0 и 2 адрес известен заранее (\texttt{ivector}, \texttt{ivector+8}). GCC и Clang один раз кладут адрес массива в регистр (\%rbx и \%r14), а \texttt{i2} читают заново для каждой записи. ICX сразу подставляет \texttt{i2 = 5} и пишет по готовому адресу \texttt{ivector+20}.
+    \item \textbf{Удаление общих подвыражений (CSE).} GCC и Clang считают сумму \texttt{h3 + k3} один раз и используют её и в условии, и в делении (для \texttt{g3} считают заново после \texttt{printf}). Два условия \texttt{< 0} и \texttt{> 5} они объединили в одну проверку (\texttt{cmpl \$5} / \texttt{jbe} у GCC и \texttt{cmpl \$6} / \texttt{jb} у Clang). ICX сразу считает \texttt{h3 + 1}. Деление на 3 заменено умножением на 2863311531 и сдвигом (\texttt{shrq \$33}). У GCC и Clang деление осталось (\texttt{idivl}).
+    \item \textbf{Вынесение инвариантного кода (LICM).} ICX вычислил \texttt{j * k} один раз до цикла, а внутри остаётся только запись (\texttt{movb \%bl}). GCC и Clang оставили умножение внутри цикла и каждый раз читают \texttt{j} и \texttt{k} из памяти. У GCC умножение 8-битное (\texttt{mulb}).
+    \item \textbf{Вызов функции с аргументами.} Во всех компиляторах в \texttt{main} вызова нет.
+    \item \textbf{Вызов функции без аргументов.} GCC оставил вызов \texttt{call unnecessary\_loop}. Clang и ICX подставили тело функции прямо в \texttt{main}.
+    \item \textbf{\texttt{dead\_code}: недостижимый код и лишние присваивания.} В функции переменная \texttt{idead\_store} нигде не используется, а \texttt{if (0)} никогда не выполняется. На \texttt{-O2} у всех трёх компиляторов от функции остаётся только возврат (\texttt{ret} или \texttt{retq}).
+    \item \textbf{\texttt{unnecessary\_loop}: удаление ненужного цикла.} Цикл повторяет пять раз одно и то же присваивание \texttt{k5 = x + j5} при \texttt{x = 0}. Во всех трёх компиляторах вместо него одна запись \texttt{k5 = j5} и \texttt{i = 5}. Вызов \texttt{printf} в конце превратился в переход \texttt{jmp printf}.
+    \item \textbf{\texttt{loop\_jamming}: объединение циклов.} Объединить циклы нельзя без изменения порядка вывода: сначала печатаются пять значений первого цикла, потом пять второго. Поэтому GCC и Clang оставили два цикла (внутри умножения \texttt{imull}). ICX тоже не объединил циклы, но полностью развернул оба: вместо циклов идут подряд пять вызовов \texttt{printf}, потом ещё пять. Умножения на 2, 3 и 4 он заменил на \texttt{leal} и \texttt{shll \$2}, а общее произведение \texttt{x * k5} посчитал один раз.
+    \item \textbf{\texttt{loop\_unrolling}: разворачивание цикла.} GCC и Clang оставили цикл на 6 повторов. ICX развернул цикл полностью: в листинге шесть вызовов \texttt{printf} подряд, а нули в массив записаны тремя инструкциями (\texttt{movq \$0} записывает четыре числа, и два \texttt{movw \$0}).
+    \item \textbf{\texttt{jump\_compression}: сжатие цепочки переходов.} На \texttt{-O0} хорошо заметны цепочки переходов (например, \texttt{jmp .LBB5\_7}, затем \texttt{jmp .LBB5\_9}, затем \texttt{jmp .LBB5\_12}). На \texttt{-O2} все три компилятора ведут переходы сразу в нужное место и собирают общую сумму в одном месте в конце, а переменные держат в регистрах, а не в стеке. В \texttt{main} GCC оставил вызов функции, у Clang и ICX вызова нет.
+\end{enumerate}
+
+\textbf{Вывод.} Все три компилятора выполняют базовые оптимизации: свёртку констант, применение арифметических тождеств, снижение мощности и удаление мёртвого кода. Различия проявляются в отдельных преобразованиях. В рассмотренном тесте ICX вынес умножение \(j * k\) из цикла и заменил деление на константу умножением и сдвигом. В некоторых циклах \texttt{optbench.c} ICX выполнил полное разворачивание, тогда как GCC и Clang сохранили циклические конструкции. GCC также сохранил вызов \texttt{unnecessary\_loop}, а Clang и ICX встроили тело этой функции в \texttt{main}. Ни один из компиляторов не объединил рассмотренные циклы.
+
+\subsection{Ассемблер, функции Флетчера}
+
+\begin{enumerate}
+    \item При \texttt{-O2} все три компилятора заменили операции вычисления остатка от деления на константу последовательностями арифметических инструкций, включающими умножение и сдвиги.
+    \item На \texttt{-O0} переменные \texttt{sum1}, \texttt{sum2}, \texttt{c0}, \texttt{c1}, \texttt{index}, \texttt{data} лежат в стеке, и каждая итерация читает и пишет их в память. При \texttt{-O2} компиляторы преимущественно используют регистры для хранения рабочих переменных, сокращая необходимость обращения к памяти.
+    \item Размотка циклов:
+    \begin{itemize}
+        \item GCC циклы не разматывает: одна итерация это один байт (для \texttt{fletcher16}) или одно число (для \texttt{fletcher32\_opt}).
+        \item Clang разматывает циклы: в \texttt{fletcher16} в 8 раз, в \texttt{fletcher16\_opt} и \texttt{fletcher32\_opt} в 6 раз.
+        \item ICX разматывает циклы в 8 раз.
+    \end{itemize}
+\end{enumerate}
+
+\section{Заключение}
+В ходе работы получены следующие результаты:
+\begin{enumerate}
+    \item Выбраны компиляторы GCC 16.2.1, Clang 22.1.8, Intel ICX 2026.0.0 и два теста: \texttt{optbench.c} и функции Флетчера, применяемые в сетевых протоколах.
+    \item Измерены размер секции \texttt{.text} и время работы для \texttt{-O0}, \texttt{-O2}, \texttt{-Os}.  В обоих тестах у каждого из трёх компиляторов наименьший размер получен при  \texttt{-Os}. Время выполнения программ при разных уровнях оптимизации различается незначительно; полученные значения с учётом стандартного отклонения близки.
+    \item Составлены таблицы сравнения ассемблерного кода для каждого компилятора и сводные таблицы для двух тестов.
+    \item Сопоставлены подходы компиляторов:
+    \begin{itemize}
+        \item \textbf{GCC} выполняет базовые оптимизации, но сохранил вызов именно функции \texttt{unnecessary\_loop} и не разворачивает циклы, деление заменяет умножением уже на \texttt{-O0}.
+        \item \textbf{Clang} выполняет базовые оптимизации, встраивает функции; в \texttt{fletcher.c} разворачивает цикл \texttt{fletcher16} в 8 раз, а циклы \texttt{fletcher16\_opt} и \texttt{fletcher32\_opt} — в 6 раз; на \texttt{optbench.c} циклы не разворачивает.
+        \item \textbf{Intel ICX} в рассмотренных тестах активнее разворачивает циклы, использует регистры для рабочих переменных и применяет дополнительные преобразования арифметических выражений. При этом размер секции \texttt{.text} при \texttt{-O2} оказывается больше, чем у GCC и Clang, для обоих тестов.
+    \end{itemize}
+\end{enumerate}
+
+Репозиторий с исходным кодом, ассемблерными листингами и таблицами: \url{https://github.com/shannami/educational-practice}
+
+\section*{Список литературы}
+\begin{enumerate}
+    \item Using the GNU Compiler Collection (GCC).~--- URL: \url{https://gcc.gnu.org/onlinedocs/} (дата обращения: 01.10.2026).
+    \item Clang Compiler User's Manual  // Clang Documentation.~--- URL: \url{https://clang.llvm.org/docs/UsersManual.html} (дата обращения: 01.10.2026).
+    \item Invoke the Compiler // Intel oneAPI DPC++/C++ Compiler Developer Guide and Reference.~--- Версия 2026.0.~--- Intel Corporation.~--- URL: \url{https://www.intel.com/content/www/us/en/docs/dpcpp-cpp-compiler/developer-guide-reference/2026-0/invoke-the-compiler.html} (дата обращения: 01.10.2026).
+    \item fp-model, fp // Intel oneAPI DPC++/C++ Compiler Developer Guide and Reference.~--- Версия 2026.0.~--- Intel Corporation.~--- URL: \url{https://www.intel.com/content/www/us/en/docs/dpcpp-cpp-compiler/developer-guide-reference/2026-0/fp-model-fp.html} (дата обращения: 01.10.2026).
+    \item Хислей Ф. Н. Генерация высококачественного кода для программ, написанных на Си : перевод статьи из PC Tech Journal.~--- 1988.
+    \item Fletcher J. G. An Arithmetic Checksum for Serial Transmissions // IEEE Transactions on Communications.~--- 1982.~--- DOI: \url{https://doi.org/10.1109/TCOM.1982.1095369}.
+    \item Nakassis A. Fletcher's Error Detection Algorithm: How to Implement It Efficiently and How to Avoid the Most Common Pitfalls // ACM SIGCOMM Computer Communication Review.~--- 1988.~--- DOI: \url{https://doi.org/10.1145/53644.53648}.
+    \item Zweig J., Partridge C. TCP Alternate Checksum Options .~--- RFC 1146.~--- Internet Engineering Task Force, 1990.~--- URL: \url{https://www.rfc-editor.org/rfc/rfc1146.html} (дата обращения: 13.10.2026).
+    \item ISO. ISO Transport Protocol Specification, ISO DP 8073 .~--- RFC 905.~--- Internet Engineering Task Force, 1984.~--- URL: \url{https://www.rfc-editor.org/rfc/rfc905.html} (дата обращения: 13.10.2026).
+    \item Контрольная сумма Флетчера  // --- URL: \url{https://ru.wikipedia.org/wiki/Контрольная_сумма_Флетчера} (дата обращения: 14.10.2026).
+\end{enumerate}
+
+\end{document}

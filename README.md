@@ -10,13 +10,12 @@
 | Clang | 21.1.8 | 
 | ICX | 2026.0.0 |
 
-## Тестовая программа 
-[optbench.c](https://github.com/shannami/educational-practice/blob/main/src/optbench.c)
+## Тестовые программы
+- [optbench.c](https://github.com/shannami/educational-practice/blob/main/src/optbench.c)
+- [fletcher.c](https://github.com/shannami/educational-practice/blob/main/src/fletcher.c)
 
 ## Асcемблерный код
-- [GCC](https://github.com/shannami/educational-practice/tree/main/asm/gcc)
-- [Clang](https://github.com/shannami/educational-practice/tree/main/asm/clang)
-- [ICX](https://github.com/shannami/educational-practice/tree/main/asm/icx)
+- [acm](https://github.com/shannami/educational-practice/tree/main/asm/)
 
 ---
 Характеристики системы, на которой проводились исследования:
